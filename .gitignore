@@ -1,0 +1,22 @@
+# Private source material and per-run research exports
+tmp/
+private/
+samples/
+
+# Never commit local credentials. Users supply their own public-data key at runtime.
+.env
+.env.*
+.envrc
+
+# Local macOS metadata
+.DS_Store
+
+# Python cache and internal research workpapers
+__pycache__/
+*.py[cod]
+PLAN.md
+SOURCE_AUDIT.md
+scripts/reocr_vision.py
+scripts/audit_vision_pdfs.py
+research/ISSUE_CARDS.md
+research/PHASE2_METHODOLOGY_MAP.md

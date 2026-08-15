@@ -1,0 +1,359 @@
+{
+  "schema_version": "0.1.0",
+  "analysis": {
+    "analysis_id": "analysis001",
+    "analysis_date": "2026-08-15",
+    "procedure_type": "court_auction",
+    "scope_status": "supported",
+    "scope_reasons": ["합성 주거용 집합건물 사례"],
+    "privacy_mode": "synthetic",
+    "engine_version": "prototype-0.1.0",
+    "knowledge_version": "phase3-core-2026-08-15",
+    "law_checked_at": "2026-08-15"
+  },
+  "documents": [
+    {
+      "document_id": "doccase",
+      "document_type": "case_summary",
+      "file_name": "synthetic_case_summary.pdf",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "page_count": 2,
+      "extraction_method": "manual",
+      "extraction_status": "complete"
+    },
+    {
+      "document_id": "docspec",
+      "document_type": "sale_specification",
+      "file_name": "synthetic_sale_specification.pdf",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "page_count": 3,
+      "extraction_method": "manual",
+      "extraction_status": "complete"
+    },
+    {
+      "document_id": "docstatus",
+      "document_type": "status_report",
+      "file_name": "synthetic_status_report.pdf",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "page_count": 4,
+      "extraction_method": "manual",
+      "extraction_status": "complete"
+    },
+    {
+      "document_id": "docappraisal",
+      "document_type": "appraisal",
+      "file_name": "synthetic_appraisal.pdf",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "page_count": 8,
+      "extraction_method": "manual",
+      "extraction_status": "complete"
+    },
+    {
+      "document_id": "docregistry",
+      "document_type": "registry",
+      "file_name": "synthetic_registry.pdf",
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "page_count": 3,
+      "extraction_method": "manual",
+      "extraction_status": "complete"
+    }
+  ],
+  "case": {
+    "case_id": "case001",
+    "court_name": "가상지방법원",
+    "case_number": "2026타경00001",
+    "item_numbers": ["1"],
+    "auction_kind": "voluntary",
+    "sale_date": {
+      "value": "2026-09-20",
+      "raw": "2026. 9. 20.",
+      "status": "confirmed",
+      "evidence_ids": ["evcase01"]
+    },
+    "distribution_claim_deadline": {
+      "value": "2026-08-20",
+      "raw": "2026. 8. 20.",
+      "status": "confirmed",
+      "evidence_ids": ["evcase02"]
+    },
+    "asset_ids": ["asset001"],
+    "evidence_ids": ["evcase01", "evcase02"]
+  },
+  "assets": [
+    {
+      "asset_id": "asset001",
+      "asset_type": "apartment",
+      "address_raw": "가상특별시 시범구 검증로 101, 101동 1001호",
+      "registry_identifier": "합성-집합건물-0001",
+      "exclusive_area_raw": "전유부분 59.84㎡",
+      "land_right_raw": "대지권의 목적인 토지 및 지분 기재 있음",
+      "sale_scope_status": "confirmed",
+      "evidence_ids": ["evspec01", "evappraisal01", "evregistry01"]
+    }
+  ],
+  "persons": [
+    {
+      "person_id": "person001",
+      "display_name": "소유자A(합성)",
+      "roles": ["owner", "debtor"],
+      "privacy_status": "synthetic",
+      "evidence_ids": ["evregistry02"]
+    },
+    {
+      "person_id": "person002",
+      "display_name": "근저당권자B(합성)",
+      "roles": ["creditor", "right_holder"],
+      "privacy_status": "synthetic",
+      "evidence_ids": ["evregistry03"]
+    },
+    {
+      "person_id": "person003",
+      "display_name": "점유자C(합성)",
+      "roles": ["occupant", "tenant"],
+      "privacy_status": "synthetic",
+      "evidence_ids": ["evstatus01", "evspec02"]
+    }
+  ],
+  "rights": [
+    {
+      "right_id": "right001",
+      "right_type": "mortgage",
+      "asset_ids": ["asset001"],
+      "holder_person_ids": ["person002"],
+      "registration_number_raw": "2023년 5월 10일 제12345호",
+      "registration_date": {
+        "value": "2023-05-10",
+        "raw": "2023. 5. 10. 접수",
+        "status": "confirmed",
+        "evidence_ids": ["evregistry03"]
+      },
+      "amount": {
+        "amount": 250000000,
+        "currency": "KRW",
+        "raw": "채권최고액 금 250,000,000원",
+        "status": "confirmed",
+        "evidence_ids": ["evregistry03"]
+      },
+      "raw_description": "을구 순위 1번 근저당권설정",
+      "evidence_ids": ["evregistry03"]
+    },
+    {
+      "right_id": "right002",
+      "right_type": "auction_commencement",
+      "asset_ids": ["asset001"],
+      "holder_person_ids": ["person002"],
+      "registration_number_raw": "2026년 4월 2일 제54321호",
+      "registration_date": {
+        "value": "2026-04-02",
+        "raw": "2026. 4. 2. 접수",
+        "status": "confirmed",
+        "evidence_ids": ["evregistry04"]
+      },
+      "raw_description": "임의경매개시결정",
+      "evidence_ids": ["evregistry04"]
+    }
+  ],
+  "occupancies": [
+    {
+      "occupancy_id": "occupancy001",
+      "person_id": "person003",
+      "asset_ids": ["asset001"],
+      "occupancy_status": "conflict",
+      "deposit": {
+        "amount": 80000000,
+        "currency": "KRW",
+        "raw": "보증금 80,000,000원이라고 진술",
+        "status": "candidate",
+        "evidence_ids": ["evstatus01"]
+      },
+      "evidence_ids": ["evstatus01", "evspec02"]
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event001",
+      "event_type": "right_registered",
+      "date": {
+        "value": "2023-05-10",
+        "raw": "2023. 5. 10.",
+        "status": "confirmed",
+        "evidence_ids": ["evregistry03"]
+      },
+      "subject_ids": ["right001"],
+      "description": "근저당권 설정 접수일",
+      "evidence_ids": ["evregistry03"]
+    },
+    {
+      "event_id": "event002",
+      "event_type": "auction_commenced",
+      "date": {
+        "value": "2026-04-02",
+        "raw": "2026. 4. 2.",
+        "status": "confirmed",
+        "evidence_ids": ["evregistry04"]
+      },
+      "subject_ids": ["right002"],
+      "description": "임의경매개시결정 등기 접수일",
+      "evidence_ids": ["evregistry04"]
+    },
+    {
+      "event_id": "event003",
+      "event_type": "sale_scheduled",
+      "date": {
+        "value": "2026-09-20",
+        "raw": "2026. 9. 20.",
+        "status": "confirmed",
+        "evidence_ids": ["evcase01"]
+      },
+      "subject_ids": ["case001", "asset001"],
+      "description": "매각기일",
+      "evidence_ids": ["evcase01"]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "evcase01",
+      "document_id": "doccase",
+      "page": 1,
+      "text_raw": "매각기일: 2026. 9. 20.",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evcase02",
+      "document_id": "doccase",
+      "page": 1,
+      "text_raw": "배당요구종기: 2026. 8. 20.",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evspec01",
+      "document_id": "docspec",
+      "page": 1,
+      "text_raw": "101동 1001호, 전유부분 59.84㎡, 대지권의 목적인 토지 및 지분 기재 있음",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evspec02",
+      "document_id": "docspec",
+      "page": 2,
+      "text_raw": "점유관계: 임차인 여부 확인 필요",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evstatus01",
+      "document_id": "docstatus",
+      "page": 2,
+      "text_raw": "점유자C가 보증금 80,000,000원의 임차인이라고 진술",
+      "extraction_status": "manual",
+      "confirmation_status": "candidate"
+    },
+    {
+      "evidence_id": "evappraisal01",
+      "document_id": "docappraisal",
+      "page": 3,
+      "text_raw": "평가대상: 101동 1001호",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evregistry01",
+      "document_id": "docregistry",
+      "page": 1,
+      "text_raw": "집합건물 표제부: 101동 1001호, 대지권 표시",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evregistry02",
+      "document_id": "docregistry",
+      "page": 2,
+      "text_raw": "갑구 소유자: 소유자A(합성)",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evregistry03",
+      "document_id": "docregistry",
+      "page": 3,
+      "text_raw": "을구 순위 1번 근저당권설정 2023. 5. 10. 접수, 채권최고액 250,000,000원",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    },
+    {
+      "evidence_id": "evregistry04",
+      "document_id": "docregistry",
+      "page": 3,
+      "text_raw": "을구 순위 2번 임의경매개시결정 2026. 4. 2. 접수",
+      "extraction_status": "manual",
+      "confirmation_status": "confirmed"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "conflict001",
+      "field_path": "occupancies[occupancy001].occupancy_status",
+      "description": "현황조사서에는 임차인 진술이 있으나 매각물건명세서에는 임차인 여부 확인 필요로 기재되어 있음",
+      "evidence_ids": ["evstatus01", "evspec02"],
+      "status": "withheld",
+      "resolution_note": null
+    }
+  ],
+  "missing_items": [
+    {
+      "missing_id": "missing001",
+      "item_type": "document",
+      "name": "점유자C의 임대차계약서·전입세대확인서·확정일자 및 배당요구 자료",
+      "severity": "blocking",
+      "impact": "임차인의 대항요건·우선변제 검토를 할 수 없음",
+      "status": "open"
+    },
+    {
+      "missing_id": "missing002",
+      "item_type": "confirmation",
+      "name": "현황조사서와 매각물건명세서의 점유관계 불일치 해소",
+      "severity": "material",
+      "impact": "점유·임차인 관련 결론을 판단유보해야 함",
+      "status": "open"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "finding001",
+      "issue_code": "IA01",
+      "subject_ids": ["asset001"],
+      "conclusion_status": "confirmed",
+      "summary": "합성 문서 3종과 집합건물 등기 기재에서 101동 1001호가 매각 대상이라는 점은 확인되었다.",
+      "evidence_ids": ["evspec01", "evappraisal01", "evregistry01"],
+      "legal_rule_ids": ["lr_proc_01", "lr_land_01"],
+      "analysis_date": "2026-08-15"
+    },
+    {
+      "finding_id": "finding002",
+      "issue_code": "IA02",
+      "subject_ids": ["right001", "right002"],
+      "conclusion_status": "conditional",
+      "summary": "확인된 등기 원문상 근저당권과 경매개시결정의 시간축은 정리되었으나, 등기 전체·매각조건 확인 전 권리효과는 확정하지 않는다.",
+      "assumptions": ["제출된 등기사항증명서가 말소사항을 포함한 전체본이라는 확인이 필요하다."],
+      "evidence_ids": ["evregistry03", "evregistry04"],
+      "legal_rule_ids": ["lr_reg_01"],
+      "analysis_date": "2026-08-15"
+    },
+    {
+      "finding_id": "finding003",
+      "issue_code": "IA03",
+      "subject_ids": ["person003", "occupancy001"],
+      "conclusion_status": "withheld",
+      "summary": "점유자C의 임차인 지위와 대항·우선변제 관련 요건은 문서 간 불일치와 필수자료 누락으로 판단을 유보한다.",
+      "evidence_ids": ["evstatus01", "evspec02"],
+      "legal_rule_ids": ["lr_lease_01", "lr_lease_02"],
+      "related_conflict_ids": ["conflict001"],
+      "related_missing_ids": ["missing001", "missing002"],
+      "follow_up_questions": ["점유자C의 실제 점유 개시일과 주민등록 전입일은 언제인가?", "확정일자·임대차계약서·배당요구서가 있는가?"],
+      "analysis_date": "2026-08-15"
+    }
+  ]
+}

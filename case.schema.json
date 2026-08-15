@@ -1,0 +1,871 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:analyze-korean-auction-rights:case-schema:0.1.0",
+  "title": "Korean Court Auction Rights Analysis Case",
+  "description": "법원 부동산경매 사건의 사실, 증거, 상충, 누락 및 분석결론을 분리해 저장하는 MVP 스키마",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "analysis",
+    "documents",
+    "case",
+    "assets",
+    "persons",
+    "rights",
+    "occupancies",
+    "events",
+    "evidence",
+    "conflicts",
+    "missing_items",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "analysis": {
+      "$ref": "#/$defs/analysis"
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/document"
+      }
+    },
+    "case": {
+      "$ref": "#/$defs/case"
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
+    },
+    "persons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/person"
+      }
+    },
+    "rights": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/right"
+      }
+    },
+    "occupancies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/occupancy"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conflict"
+      }
+    },
+    "missing_items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/missingItem"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "decision_support": {
+      "anyOf": [
+        {"$ref": "#/$defs/decisionSupport"},
+        {"type": "null"}
+      ]
+    },
+    "buyer_brief": {
+      "$ref": "#/$defs/buyerBrief"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{2,63}$"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9-]{2,63}$"
+    },
+    "caseIdList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/caseId"}
+    },
+    "dateFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw", "status", "evidence_ids"],
+      "properties": {
+        "value": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "time": {
+          "type": ["string", "null"],
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "status": {
+          "enum": ["confirmed", "candidate", "conflict", "unknown"]
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "moneyFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency", "raw", "status", "evidence_ids"],
+      "properties": {
+        "amount": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "currency": {
+          "const": "KRW"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "status": {
+          "enum": ["confirmed", "candidate", "conflict", "unknown"]
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "idList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analysis_id",
+        "analysis_date",
+        "procedure_type",
+        "scope_status",
+        "privacy_mode"
+      ],
+      "properties": {
+        "analysis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "analysis_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "procedure_type": {
+          "enum": [
+            "court_auction",
+            "tax_public_sale",
+            "public_asset_sale",
+            "trust_public_sale",
+            "unknown"
+          ]
+        },
+        "scope_status": {
+          "enum": ["supported", "partially_supported", "unsupported"]
+        },
+        "scope_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "privacy_mode": {
+          "enum": ["local_full", "masked_share", "synthetic"]
+        },
+        "engine_version": {
+          "type": ["string", "null"]
+        },
+        "knowledge_version": {
+          "type": ["string", "null"]
+        },
+        "law_checked_at": {
+          "type": ["string", "null"],
+          "format": "date"
+        }
+      }
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "document_type",
+        "file_name",
+        "sha256",
+        "page_count",
+        "extraction_method",
+        "extraction_status"
+      ],
+      "properties": {
+        "document_id": {
+          "$ref": "#/$defs/id"
+        },
+        "document_type": {
+          "enum": [
+            "case_summary",
+            "schedule",
+            "sale_specification",
+            "status_report",
+            "appraisal",
+            "registry",
+            "tenant_record",
+            "building_register",
+            "land_register",
+            "cadastral_map",
+            "trust_register",
+            "sale_notice",
+            "sale_conditions",
+            "lease_contract",
+            "lien_claim",
+            "court_order",
+            "other"
+          ]
+        },
+        "file_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "issued_date": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "extraction_method": {
+          "enum": [
+            "native_pdf",
+            "vision_ocr",
+            "other_ocr",
+            "image_vision",
+            "html",
+            "manual"
+          ]
+        },
+        "extraction_status": {
+          "enum": ["complete", "partial", "failed", "not_started"]
+        },
+        "quality_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "court_name", "case_number", "item_numbers", "asset_ids", "evidence_ids"],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/id"
+        },
+        "court_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "case_number": {
+          "type": "string",
+          "minLength": 1
+        },
+        "item_numbers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "auction_kind": {
+          "enum": ["compulsory", "voluntary", "unknown"]
+        },
+        "sale_date": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "distribution_claim_deadline": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "asset_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_id", "asset_type", "address_raw", "sale_scope_status", "evidence_ids"],
+      "properties": {
+        "asset_id": {
+          "$ref": "#/$defs/id"
+        },
+        "asset_type": {
+          "enum": [
+            "condominium_unit",
+            "apartment",
+            "multifamily_unit",
+            "officetel_residential",
+            "land",
+            "building",
+            "other"
+          ]
+        },
+        "address_raw": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registry_identifier": {
+          "type": ["string", "null"]
+        },
+        "share_raw": {
+          "type": ["string", "null"]
+        },
+        "exclusive_area_raw": {
+          "type": ["string", "null"]
+        },
+        "land_right_raw": {
+          "type": ["string", "null"]
+        },
+        "sale_scope_status": {
+          "enum": ["confirmed", "conditional", "conflict", "unknown"]
+        },
+        "parent_asset_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "person": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["person_id", "display_name", "roles", "privacy_status", "evidence_ids"],
+      "properties": {
+        "person_id": {
+          "$ref": "#/$defs/id"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "owner",
+              "debtor",
+              "creditor",
+              "right_holder",
+              "occupant",
+              "tenant",
+              "claimant",
+              "trustee",
+              "other"
+            ]
+          }
+        },
+        "privacy_status": {
+          "enum": ["full_local", "masked", "synthetic"]
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "right": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "right_id",
+        "right_type",
+        "asset_ids",
+        "holder_person_ids",
+        "registration_date",
+        "evidence_ids"
+      ],
+      "properties": {
+        "right_id": {
+          "$ref": "#/$defs/id"
+        },
+        "right_type": {
+          "enum": [
+            "ownership",
+            "mortgage",
+            "pledged_mortgage",
+            "seizure",
+            "provisional_seizure",
+            "auction_commencement",
+            "provisional_registration_security",
+            "provisional_registration_other",
+            "provisional_disposition",
+            "leasehold_registration",
+            "chonsegwon",
+            "superficies",
+            "easement",
+            "lien_claim",
+            "trust",
+            "other"
+          ]
+        },
+        "asset_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "holder_person_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "registration_number_raw": {
+          "type": ["string", "null"]
+        },
+        "registration_date": {
+          "$ref": "#/$defs/dateFact"
+        },
+        "cause_date": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "amount": {
+          "anyOf": [
+            {"$ref": "#/$defs/moneyFact"},
+            {"type": "null"}
+          ]
+        },
+        "raw_description": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "occupancy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["occupancy_id", "person_id", "asset_ids", "occupancy_status", "evidence_ids"],
+      "properties": {
+        "occupancy_id": {
+          "$ref": "#/$defs/id"
+        },
+        "person_id": {
+          "$ref": "#/$defs/id"
+        },
+        "asset_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "occupancy_status": {
+          "enum": ["owner_occupied", "tenant", "family_or_related", "vacant", "unknown", "conflict"]
+        },
+        "possession_start": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "move_in_date": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "fixed_date": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "distribution_claim_date": {
+          "anyOf": [
+            {"$ref": "#/$defs/dateFact"},
+            {"type": "null"}
+          ]
+        },
+        "deposit": {
+          "anyOf": [
+            {"$ref": "#/$defs/moneyFact"},
+            {"type": "null"}
+          ]
+        },
+        "monthly_rent": {
+          "anyOf": [
+            {"$ref": "#/$defs/moneyFact"},
+            {"type": "null"}
+          ]
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "event_type", "date", "subject_ids", "evidence_ids"],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/id"
+        },
+        "event_type": {
+          "enum": [
+            "right_registered",
+            "ownership_transferred",
+            "auction_commenced",
+            "occupancy_started",
+            "move_in_reported",
+            "fixed_date_obtained",
+            "distribution_claimed",
+            "sale_scheduled",
+            "other"
+          ]
+        },
+        "date": {
+          "$ref": "#/$defs/dateFact"
+        },
+        "subject_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "description": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "document_id",
+        "page",
+        "text_raw",
+        "extraction_status",
+        "confirmation_status"
+      ],
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/id"
+        },
+        "document_id": {
+          "$ref": "#/$defs/id"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bbox": {
+          "type": ["array", "null"],
+          "prefixItems": [
+            {"type": "number"},
+            {"type": "number"},
+            {"type": "number"},
+            {"type": "number"}
+          ],
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "text_raw": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extraction_status": {
+          "enum": ["native", "ocr", "manual"]
+        },
+        "confirmation_status": {
+          "enum": ["confirmed", "candidate", "rejected", "not_reviewed"]
+        },
+        "note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conflict_id", "field_path", "evidence_ids", "status"],
+      "properties": {
+        "conflict_id": {
+          "$ref": "#/$defs/id"
+        },
+        "field_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "status": {
+          "enum": ["open", "resolved", "withheld"]
+        },
+        "resolution_note": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "missingItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["missing_id", "item_type", "severity", "impact", "status"],
+      "properties": {
+        "missing_id": {
+          "$ref": "#/$defs/id"
+        },
+        "item_type": {
+          "enum": ["document", "page", "fact", "confirmation", "legal_source", "other"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": ["blocking", "material", "advisory"]
+        },
+        "impact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": ["open", "resolved", "not_obtainable"]
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "issue_code",
+        "subject_ids",
+        "conclusion_status",
+        "summary",
+        "evidence_ids",
+        "legal_rule_ids",
+        "analysis_date"
+      ],
+      "properties": {
+        "finding_id": {
+          "$ref": "#/$defs/id"
+        },
+        "issue_code": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+        },
+        "subject_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "conclusion_status": {
+          "enum": ["confirmed", "conditional", "withheld"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "legal_rule_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "related_conflict_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "related_missing_ids": {
+          "$ref": "#/$defs/idList"
+        },
+        "follow_up_questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "analysis_date": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "decisionSupportItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "detail", "evidence_ids", "legal_rule_ids"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "detail": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/idList"},
+        "legal_rule_ids": {"$ref": "#/$defs/idList"},
+        "case_ids": {"$ref": "#/$defs/caseIdList"}
+      }
+    },
+    "preBidAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "priority", "title", "why", "resolution", "outcome_if_clear", "outcome_if_not_clear", "evidence_ids", "legal_rule_ids"],
+      "properties": {
+        "action_id": {"$ref": "#/$defs/id"},
+        "priority": {"enum": ["blocker", "critical", "important"]},
+        "title": {"type": "string", "minLength": 1},
+        "why": {"type": "string", "minLength": 1},
+        "resolution": {"type": "string", "minLength": 1},
+        "outcome_if_clear": {"type": "string", "minLength": 1},
+        "outcome_if_not_clear": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/idList"},
+        "legal_rule_ids": {"$ref": "#/$defs/idList"},
+        "case_ids": {"$ref": "#/$defs/caseIdList"}
+      }
+    },
+    "specialRight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["special_id", "type", "status", "why", "resolution", "evidence_ids", "legal_rule_ids"],
+      "properties": {
+        "special_id": {"$ref": "#/$defs/id"},
+        "type": {"type": "string", "minLength": 1},
+        "status": {"enum": ["not_indicated", "candidate", "confirmed", "unknown"]},
+        "why": {"type": "string", "minLength": 1},
+        "resolution": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/idList"},
+        "legal_rule_ids": {"$ref": "#/$defs/idList"},
+        "case_ids": {"$ref": "#/$defs/caseIdList"}
+      }
+    },
+    "decisionSupport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision_status", "summary", "positive_signals", "blocking_risks", "pre_bid_actions", "special_rights"],
+      "properties": {
+        "decision_status": {"enum": ["do_not_bid_yet", "conditional_candidate", "not_assessable"]},
+        "summary": {"type": "string", "minLength": 1},
+        "positive_signals": {"type": "array", "items": {"$ref": "#/$defs/decisionSupportItem"}},
+        "blocking_risks": {"type": "array", "items": {"$ref": "#/$defs/decisionSupportItem"}},
+        "pre_bid_actions": {"type": "array", "items": {"$ref": "#/$defs/preBidAction"}},
+        "special_rights": {"type": "array", "items": {"$ref": "#/$defs/specialRight"}}
+      }
+    },
+    "buyerBriefCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "status", "detail"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "status": {"enum": ["favorable", "caution", "high_risk", "unknown"]},
+        "detail": {"type": "string", "minLength": 1}
+      }
+    },
+    "conditionalConclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "observed", "likely_effect", "flips_if", "action", "evidence_ids", "legal_rule_ids"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "observed": {"type": "string", "minLength": 1},
+        "likely_effect": {"type": "string", "minLength": 1},
+        "flips_if": {"type": "string", "minLength": 1},
+        "action": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/idList"},
+        "legal_rule_ids": {"$ref": "#/$defs/idList"},
+        "case_ids": {"$ref": "#/$defs/caseIdList"}
+      }
+    },
+    "buyerBrief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "confidence", "novice_fit", "headline", "rationale", "source_strength", "cards", "conditional_conclusions", "deal_breakers"],
+      "properties": {
+        "verdict": {"enum": ["preliminary_bid_candidate", "expert_review_required", "avoid"]},
+        "confidence": {"enum": ["low", "medium", "high"]},
+        "novice_fit": {"enum": ["suitable", "caution", "unsuitable"]},
+        "headline": {"type": "string", "minLength": 1},
+        "rationale": {"type": "string", "minLength": 1},
+        "source_strength": {"type": "string", "minLength": 1},
+        "cards": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rights", "occupancy", "special_property", "price"],
+          "properties": {
+            "rights": {"$ref": "#/$defs/buyerBriefCard"},
+            "occupancy": {"$ref": "#/$defs/buyerBriefCard"},
+            "special_property": {"$ref": "#/$defs/buyerBriefCard"},
+            "price": {"$ref": "#/$defs/buyerBriefCard"}
+          }
+        },
+        "conditional_conclusions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/conditionalConclusion"}},
+        "deal_breakers": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

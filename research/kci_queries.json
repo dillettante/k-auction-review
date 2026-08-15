@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "description": "법원 부동산경매 권리분석 연구용 KCI 제목 검색어. 검색결과는 쟁점 발굴용이며 법적 근거로 바로 사용하지 않는다.",
+  "queries": [
+    {"query_id": "KCI01", "title": "부동산 경매", "focus": "부동산경매 일반·절차"},
+    {"query_id": "KCI02", "title": "부동산경매", "focus": "띄어쓰기 없는 제목 변형"},
+    {"query_id": "KCI03", "title": "민사집행", "focus": "부동산 집행·매각·배당의 절차법"},
+    {"query_id": "KCI04", "title": "부동산 강제경매", "focus": "강제경매 절차와 쟁점"},
+    {"query_id": "KCI05", "title": "임의경매", "focus": "담보권 실행 경매"},
+    {"query_id": "KCI06", "title": "매각물건명세서", "focus": "명세서 공지·하자·정정"},
+    {"query_id": "KCI07", "title": "배당요구", "focus": "배당요구 종기·효력·배당절차"},
+    {"query_id": "KCI08", "title": "주택임대차 경매", "focus": "임차인·대항력·우선변제"},
+    {"query_id": "KCI09", "title": "유치권 경매", "focus": "유치권의 성립·점유·매각 관계"},
+    {"query_id": "KCI10", "title": "법정지상권 경매", "focus": "토지·건물 분리와 법정지상권"},
+    {"query_id": "KCI11", "title": "가등기 경매", "focus": "가등기·보전등기와 매수인 지위"},
+    {"query_id": "KCI12", "title": "전세권 경매", "focus": "전세권·배당·매각 절차"},
+    {"query_id": "KCI13", "title": "대지권 경매", "focus": "집합건물 대지권·별도등기"},
+    {"query_id": "KCI14", "title": "매각물건 명세서", "focus": "명세서 설명·정정·하자"},
+    {"query_id": "KCI15", "title": "임차인 경매", "focus": "임차인 대항력·배당·인수"},
+    {"query_id": "KCI16", "title": "대항력", "focus": "주택 임대차의 대항요건·존속"},
+    {"query_id": "KCI17", "title": "우선변제권", "focus": "임대차·배당과 우선변제"},
+    {"query_id": "KCI18", "title": "배당 경매", "focus": "부동산경매의 배당 및 우선순위"}
+  ]
+}
