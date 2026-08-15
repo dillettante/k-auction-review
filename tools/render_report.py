@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from report_styles import REPORT_CSS
+
 
 STATUS = {"confirmed": "확인", "conditional": "조건부", "withheld": "판단유보"}
 DECISION_STATUS = {
@@ -23,6 +25,12 @@ BUYER_VERDICT = {
     "preliminary_bid_candidate": "권리상 잠정 입찰 후보",
     "expert_review_required": "전문 검토 후에만 접근",
     "avoid": "현재 조건에서는 회피",
+}
+GATE_STATUS = {
+    "favorable": "통과 가능성",
+    "caution": "확인 필요",
+    "high_risk": "위험 해소 필요",
+    "unknown": "판단 보류",
 }
 CONFIDENCE = {"low": "낮음", "medium": "보통", "high": "높음"}
 NOVICE_FIT = {"suitable": "초보자도 검토 가능", "caution": "초보자는 주의", "unsuitable": "초보자 부적합"}
@@ -228,8 +236,12 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
         card_titles = {"rights": "등기권리", "occupancy": "점유·임차", "special_property": "특수물건", "price": "가격"}
         brief_cards = "".join(
             f'<section class="brief-card {esc(item["status"])}"><p class="eyebrow">{esc(card_titles[key])}</p>'
-            f'<h3>{esc(item["label"])}</h3><p>{esc(item["detail"])}</p></section>'
+            f'<h3>{esc(GATE_STATUS.get(item["status"], "확인 필요"))}</h3><p>{esc(item["detail"])}</p></section>'
             for key, item in brief["cards"].items()
+        )
+        next_actions = "".join(
+            f"<li><strong>{esc(item['title'])}</strong>{esc(item['action'])}</li>"
+            for item in brief["conditional_conclusions"][:3]
         )
         conclusion_rows = "".join(
             f'<section class="conclusion"><h3>{esc(item["title"])}</h3>'
@@ -242,14 +254,16 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
         )
         breakers = "".join(f"<li>{esc(item)}</li>" for item in brief["deal_breakers"])
         buyer_html = (
-            '<section class="verdict"><div><p class="eyebrow">입찰자에게 드리는 잠정 답변</p>'
+            '<section class="decision-sheet"><div><p class="eyebrow">입찰자에게 드리는 잠정 답변</p>'
             f'<p class="verdict-label">{esc(BUYER_VERDICT[brief["verdict"]])}</p><h2>{esc(brief["headline"])}</h2>'
             f'<p>{esc(brief["rationale"])}</p></div><div class="verdict-meta">'
             f'<span>판단 신뢰도 <strong>{esc(CONFIDENCE[brief["confidence"]])}</strong></span>'
             f'<span>난이도 <strong>{esc(NOVICE_FIT[brief["novice_fit"]])}</strong></span>'
             f'<span>자료 수준 <strong>{esc(brief["source_strength"])}</strong></span></div></section>'
-            f'<div class="brief-grid">{brief_cards}</div>'
-            f'<h2>현재 자료로 어디까지 말할 수 있나</h2><div class="conclusions">{conclusion_rows}</div>'
+            + (f'<section class="next-actions"><h2>입찰 전에 먼저 할 일</h2><ol>{next_actions}</ol></section>' if next_actions else "")
+            + '<h2>네 가지 입찰 관문</h2><p class="section-intro">각 관문을 통과하더라도, 뒤의 확인 조건이 충족될 때만 잠정 결론을 유지합니다.</p>'
+            + f'<div class="brief-grid">{brief_cards}</div>'
+            + f'<h2>현재 자료로 말할 수 있는 범위</h2><div class="conclusions">{conclusion_rows}</div>'
             f'<section class="breaker"><h2>하나라도 나오면 결론을 폐기할 조건</h2><ul>{breakers}</ul></section>'
         )
     scope_warning = ""
@@ -267,9 +281,10 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
             '<p class="source-line"><strong>제한자료 분석:</strong> 경매지·요약자료만으로 최대한 추론했습니다. '
             '최종 입찰 전 최신 법원 문서와 등기를 직접 대조하면 위 잠정 결론을 검증할 수 있습니다.</p>'
         )
-    general_warning = (
-        '<p class="warning-line"><strong>주의:</strong> 제공받은 자료에 국한된 참고 분석입니다. 입찰 전 최신 법원 원문·등기·현장을 직접 확인하십시오.</p>'
-    )
+    general_warning = '<aside class="caution-banner"><strong>입찰 전 확인:</strong> 이 보고서는 제공받은 자료에 국한된 참고 분석입니다. 최신 법원 원문·등기·현장을 직접 확인한 뒤에만 입찰 판단에 사용하십시오.'
+    if limited_source_warning:
+        general_warning += limited_source_warning
+    general_warning += "</aside>"
     decision = case.get("decision_support")
     decision_html = ""
     if decision:
@@ -330,11 +345,21 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
         if minimum_price and market_minimum:
             relation = (minimum_price / market_minimum - 1) * 100
             interpretation += f"다만 비교군 최저 거래보다 {abs(relation):.1f}% {'높습니다' if relation >= 0 else '낮습니다'}."
+        price_ladder = "".join(
+            f'<div class="price-point {"minimum" if label == "최저매각가" else ""}"><span>{label}</span><b>{won(value)}</b></div>'
+            for label, value in (
+                ("최저매각가", minimum_price),
+                ("감정가", appraisal_price),
+                ("비교군 중앙값", median_price),
+            )
+            if value is not None
+        )
         market_html = (
             "<h2>가격 판단 — 국토교통부 실거래가</h2><section class=\"market-summary\"><strong>현재 가격이 싸 보이는가?</strong>"
             + f"<p>{esc(warning)}</p><p>대상 면적 {esc(target.get('exclusive_area_sqm'))}㎡ · 비교 거래 {esc(summary.get('count'))}건 · "
             + f"거래가 중앙값 {won(summary.get('median_krw'))} · 범위 {won(summary.get('minimum_krw'))}–{won(summary.get('maximum_krw'))} · "
             + f"㎡당 중앙값 {won(summary.get('median_per_sqm_krw'))}</p>"
+            + (f'<div class="price-ladder">{price_ladder}</div>' if price_ladder else "")
             + f"<p><strong>해석:</strong> {esc(interpretation or '대상 최저가와 비교군을 연결할 가격정보가 부족합니다.')}</p>"
             + "<p>동일 단지 확정 사례가 아니므로 가격 방향만 보여 줍니다. 최종 상한가는 명도·수리·세금·금융비용을 뺀 뒤 계산해야 합니다.</p></section>"
             + "<table><thead><tr><th>단지</th><th>계약일</th><th>전용면적</th><th>층</th><th>거래가</th><th>㎡당</th></tr></thead><tbody>" + comparable_rows + "</tbody></table>"
@@ -343,15 +368,10 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
     return f"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>권리분석 보고서 — {esc(case_info['case_number'])}</title>
-<style>
-:root{{--ink:#172033;--muted:#637083;--line:#d8dee8;--bg:#f5f7fb;--card:#fff;--good:#0e7a55;--warn:#a95b00;--hold:#9d2436}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}}main{{max-width:1040px;margin:auto;padding:32px 20px 72px}}header{{border-radius:18px;padding:30px;background:#16243b;color:#fff}}h1,h2,h3{{line-height:1.25}}h1{{margin:0 0 8px;font-size:28px}}h2{{margin:34px 0 14px;font-size:20px}}h3{{margin:0 0 6px;font-size:16px}}.sub,.fine{{color:var(--muted)}}header .sub,header .fine{{color:#d5dceb}}.meta{{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}}.chip{{border:1px solid #426084;border-radius:999px;padding:3px 10px;font-size:13px;background:#233653;color:#e9effa}}.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}}.card,details,.decision{{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}}.risk{{border-left:4px solid var(--hold)}}.decision{{border-left:6px solid var(--hold);background:#fff3f4}}.decision-status{{margin:0 0 8px;color:var(--hold);font-size:23px;font-weight:800}}.status{{font-weight:700}}.confirmed{{color:var(--good)}}.conditional{{color:var(--warn)}}.withheld{{color:var(--hold)}}.candidate,.unknown{{color:var(--warn)}}.not_indicated{{color:var(--hold)}}table{{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line)}}th,td{{text-align:left;vertical-align:top;padding:11px;border-bottom:1px solid var(--line)}}th{{background:#edf2f8}}.notice{{border-left:4px solid var(--hold);padding:14px 16px;background:#fff3f4;border-radius:6px;margin-top:16px}}.general-warning{{border-left-color:#a95b00;background:#fff8e8}}.source-warning{{border-left-color:#9d2436;background:#fff3f4}}a{{color:#125faa}}details{{margin:8px 0}}summary{{cursor:pointer;font-weight:650}}code{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}}@media print{{body{{background:#fff;font-size:11px}}main{{max-width:none;padding:0}}header{{color:#000;background:#fff;border:1px solid #777}}.card,table,details{{break-inside:avoid}}a{{color:#000;text-decoration:none}}}}
-.warning-line,.source-line{{margin:12px 0 0;padding:10px 14px;border-radius:9px;background:#fff8e8;border:1px solid #ead7a9}}.source-line{{background:#fff3f4;border-color:#efc5cc}}.verdict{{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;margin-top:18px;padding:26px;border-radius:18px;background:#fff;border:1px solid var(--line);border-top:6px solid #176b55}}.verdict h2{{margin:8px 0 10px;font-size:25px}}.verdict-label{{display:inline-block;margin:4px 0;padding:5px 11px;border-radius:999px;background:#e5f5ef;color:#075a42;font-weight:800}}.verdict-meta{{display:flex;flex-direction:column;gap:9px;padding:15px;border-radius:12px;background:#f3f6f9}}.verdict-meta span{{display:flex;flex-direction:column}}.eyebrow{{margin:0 0 6px;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}}.brief-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}}.brief-card{{padding:16px;border-radius:13px;background:#fff;border:1px solid var(--line);border-top:4px solid var(--warn)}}.brief-card.favorable{{border-top-color:var(--good)}}.brief-card.high_risk{{border-top-color:var(--hold)}}.brief-card.unknown{{border-top-color:var(--muted)}}.brief-card p:last-child{{margin-bottom:0}}.conclusions{{display:grid;gap:12px}}.conclusion{{padding:18px 20px;border-radius:14px;background:#fff;border:1px solid var(--line)}}.conclusion p{{margin:7px 0}}.conclusion strong{{display:inline-block;min-width:145px}}.legal{{padding:0;border:0;background:transparent}}.legal summary{{font-size:13px;color:#125faa}}.breaker{{margin-top:22px;padding:4px 20px 14px;border-radius:14px;background:#fff3f4;border-left:5px solid var(--hold)}}.breaker h2{{margin-top:18px}}.scope,.deep-review{{margin-top:16px}}.deep-review>summary{{font-size:17px}}.market-summary{{padding:18px;border-radius:14px;background:#edf7f4;border-left:5px solid var(--good)}}@media(max-width:760px){{.verdict{{grid-template-columns:1fr}}.brief-grid{{grid-template-columns:1fr 1fr}}.conclusion strong{{display:block;min-width:0}}}}@media(max-width:480px){{.brief-grid{{grid-template-columns:1fr}}}}
-.evidence-panel{{margin-top:28px}}.evidence-panel>summary{{font-size:17px}}.evidence-list{{display:grid;gap:10px;margin-top:14px}}.evidence-item{{padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;scroll-margin-top:16px}}.evidence-item:target{{border-color:#277b65;background:#eef8f4}}.evidence-item h3{{margin:0 0 5px}}.evidence-item p{{margin:4px 0}}
-</style></head><body><main>
-<header><h1>권리분석 보고서</h1><p class="sub">{esc(case_info['court_name'])} {esc(case_info['case_number'])} · 물건 {esc(', '.join(case_info['item_numbers']))} · {esc(address)}</p><div class="meta"><span class="chip">분석일 {esc(analysis['analysis_date'])}</span><span class="chip">매각기일 {as_text(case_info.get('sale_date'))}</span><span class="chip">배당요구종기 {as_text(case_info.get('distribution_claim_deadline'))}</span><span class="chip">법률 확인일 {esc(analysis.get('law_checked_at') or '미기재')}</span></div></header>
+<style>{REPORT_CSS}</style></head><body><main>
+<header class="report-header"><p class="eyebrow">경매 입찰 검토 초안</p><h1>권리분석 보고서</h1><p class="sub">{esc(case_info['court_name'])} {esc(case_info['case_number'])} · 물건 {esc(', '.join(case_info['item_numbers']))} · {esc(address)}</p><div class="meta"><span class="chip">분석일 {esc(analysis['analysis_date'])}</span><span class="chip">매각기일 {as_text(case_info.get('sale_date'))}</span><span class="chip">배당요구종기 {as_text(case_info.get('distribution_claim_deadline'))}</span><span class="chip">법률 확인일 {esc(analysis.get('law_checked_at') or '미기재')}</span></div></header>
 {buyer_html}
 {general_warning}
-{limited_source_warning}
 {market_html}
 {scope_warning}
 {decision_html}
