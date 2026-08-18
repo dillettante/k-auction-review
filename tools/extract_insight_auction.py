@@ -198,6 +198,78 @@ def build_case(path: Path) -> dict[str, Any]:
             }
         )
 
+    legal_gate_reviews: list[dict[str, Any]] = []
+
+    def add_flag_evidence(evidence_id: str, match: tuple[int, re.Match[str]]) -> str:
+        evidence_items.append(evidence(evidence_id, "doc001", match[0], match[1].group(0)))
+        return evidence_id
+
+    provisional_evidence = [
+        right["evidence_ids"][0]
+        for right in rights
+        if right["right_type"] == "provisional_registration_other"
+    ]
+    if provisional_evidence:
+        legal_gate_reviews.append({
+            "gate_id": "gate_provisional_registration",
+            "status": "facts_incomplete",
+            "summary": "경매지에 가등기가 표시되어 있으나, 소유권이전청구권 보전인지 담보가등기인지와 후속기록을 알 수 없어 매수인 인수·소멸 효과를 확정하지 않는다.",
+            "confirmed_fact_ids": [],
+            "missing_fact_ids": ["registration_cause", "registration_rank", "underlying_contract_or_claim", "prior_rights", "subsequent_registration_or_judgment", "sale_terms"],
+            "evidence_ids": provisional_evidence,
+            "legal_rule_ids": ["lr_provisional_ownership_01", "lr_provisional_security_01"],
+            "case_ids": ["SC-PROV-2020-2019DA265376", "SC-PROV-2010-2010MA1322"],
+            "next_action": "최신 등기사항전부증명서에서 가등기 원인·접수순위와 본등기·말소를 확인하고, 매각물건명세서·관련 소송기록으로 후속기록을 대조한다.",
+        })
+
+    lien_match = first_match(pages, r"유치권(?!\s*(?:해당사항\s*)?없음)")
+    if lien_match:
+        lien_evidence = add_flag_evidence("evlien01", lien_match)
+        legal_gate_reviews.append({
+            "gate_id": "gate_lien",
+            "status": "facts_incomplete",
+            "summary": "유치권 관련 기재는 채권·점유에 관한 주장 단서일 뿐이다. 채권 원인과 점유의 시간관계가 없어 매수인 부담이나 채무액을 계산하지 않는다.",
+            "confirmed_fact_ids": [],
+            "missing_fact_ids": ["claim_cause", "claim_due_date", "object_relation", "possession_start", "possession_continuity", "auction_commencement_date", "possession_evidence"],
+            "evidence_ids": [lien_evidence],
+            "legal_rule_ids": ["lr_lien_01"],
+            "case_ids": ["SC-LIEN-2022-2021DA253710", "SC-LIEN-2024-2023MA7896"],
+            "next_action": "유치권 신고서, 채권 발생 자료, 공사·수리 내역, 점유 시작·계속 자료와 경매개시등기일을 시간축으로 대조한다.",
+        })
+
+    land_building_match = first_match(pages, r"토지\s*별도등기|대지권\s*(?:미등기|없음|분리)|건물과\s*토지.{0,30}분리")
+    if land_building_match:
+        land_building_evidence = add_flag_evidence("evlandrisk01", land_building_match)
+        legal_gate_reviews.append({
+            "gate_id": "gate_land_building_relation",
+            "status": "facts_incomplete",
+            "summary": "토지·건물 분리 또는 대지권 이상 징후가 보여 토지 사용권·지상권·별도 부담을 자동으로 판단하지 않는다.",
+            "confirmed_fact_ids": [],
+            "missing_fact_ids": ["land_registry", "building_registry", "ownership_history", "building_existence_at_baseline", "demolition_or_rebuild_history", "sale_scope", "special_sale_terms"],
+            "evidence_ids": [land_building_evidence],
+            "legal_rule_ids": ["lr_land_01", "lr_statutory_superficies_01", "lr_customary_superficies_01"],
+            "case_ids": ["SC-LAND-2008-2005DA15048", "SC-SUP-2003-98DA43601", "SC-SUP-2022-2017DA236749"],
+            "next_action": "토지·건물 등기와 건축물대장을 함께 확보하고, 기준 시점의 소유·건물 이력, 매각 범위와 특별매각조건을 대조한다.",
+        })
+
+    # Apartment summaries often say "토지 지분 매각" for the ordinary land-right
+    # share that accompanies an entire exclusive unit. That phrase alone must not
+    # turn a full-unit sale into a share-auction warning.
+    share_match = first_match(pages, r"공유\s*지분|지분\s*경매|지분\s*(?:일부|만)\s*매각|일부\s*지분\s*매각")
+    if share_match:
+        share_evidence = add_flag_evidence("evshare01", share_match)
+        legal_gate_reviews.append({
+            "gate_id": "gate_share_auction",
+            "status": "facts_incomplete",
+            "summary": "일부 공유지분 매각 징후가 있으므로 특정 부분의 단독 사용권이나 분할 가능성을 자동으로 전제하지 않는다.",
+            "confirmed_fact_ids": [],
+            "missing_fact_ids": ["sale_share_ratio", "coowners", "use_agreement", "possession_arrangement", "coowner_preemption_record", "partition_history"],
+            "evidence_ids": [share_evidence],
+            "legal_rule_ids": ["lr_share_auction_01"],
+            "case_ids": ["SC-SHARE-2022-2021MA162", "SC-SHARE-2023-2022DA294107"],
+            "next_action": "매각 대상 지분비율과 공유자·점유·사용 약정, 우선매수 기록 및 분할 협의·소송 경과를 확인한다.",
+        })
+
     scope_reasons = [
         "단일 경매지 PDF만 제출되어 매각물건명세서·현황조사서·등기사항증명서 원문을 확인하지 못함",
         "경매지의 권리·임차·배당 표기는 후보 사실이며 공식 원문과 대조가 필요함",
@@ -220,6 +292,77 @@ def build_case(path: Path) -> dict[str, Any]:
             "status": "open",
         },
     ]
+    available_evidence_ids = {item["evidence_id"] for item in evidence_items}
+
+    def existing_evidence(*candidates: str) -> list[str]:
+        selected = [candidate for candidate in candidates if candidate in available_evidence_ids]
+        return selected or ["evcase01"]
+
+    registry_signal_evidence = existing_evidence(
+        "evbaseline01", "evright03", "evright04", "evright05", "evsurvive01"
+    )
+    protection_evidence = existing_evidence("evbaseline01", "evright03", "evsurvive01")
+    tenancy_evidence = existing_evidence("evtenancy01", "evasset01")
+    land_evidence = existing_evidence("evscope01", "evland01", "evsource01")
+    triggered_gate_ids = {review["gate_id"] for review in legal_gate_reviews}
+    blocking_gate_ids = {"gate_lien", "gate_land_building_relation", "gate_share_auction"}
+    has_blocking_gate = bool(triggered_gate_ids & blocking_gate_ids)
+    if has_blocking_gate:
+        decision_status = "do_not_bid_yet"
+        decision_summary = "중대 특수물건 쟁점이 경매지에서 감지되었지만, 성립요건과 비용을 가르는 원문이 없습니다. 현재는 입찰을 보류하고 해당 쟁점을 먼저 해소해야 합니다."
+        brief_verdict = "expert_review_required"
+        brief_novice_fit = "unsuitable"
+        brief_headline = "특수물건 쟁점을 해소하기 전에는 입찰하지 마십시오."
+        brief_rationale = "경매지에 표시된 시간축이 긍정 신호일 수는 있으나, 유치권·토지/건물 분리·공유지분은 신고나 표제만으로 성립·소멸·비용을 판단할 수 없습니다. 관련 원문과 현장·이력 자료를 먼저 확인해야 합니다."
+        special_card_status = "high_risk"
+        special_card_detail = "중대 특수물건 징후가 있어 원문·현장 확인 전에는 초보자 접근이 부적합"
+    else:
+        decision_status = "conditional_candidate"
+        decision_summary = "경매지 기재가 공식 원문과 같다는 조건에서는 등기상 인수위험이 낮아 보이는 검토 후보이다. 입찰 직전 최신 법원 문서와 건물·토지 등기에서 이 전제가 유지되는지만 확인해야 한다."
+        brief_verdict = "preliminary_bid_candidate"
+        brief_novice_fit = "caution"
+        brief_headline = "권리표의 원문대조만 통과하면 입찰 검토가 가능한 물건으로 보입니다."
+        brief_rationale = "말소기준권리 뒤의 가등기·근저당권·경매개시등기가 모두 소멸로 표시되고, 임차내역과 비소멸 등기권리가 없다고 기재되어 있습니다. 단, 결론의 근거가 단일 경매지이므로 최신 공식 원문과의 일치가 전제입니다."
+        special_card_status = "caution"
+        special_card_detail = "대지권 지분 병합매각은 통상 구조. 후순위 가등기 원문만 집중 확인"
+
+    gate_conclusion_copies = {
+        "gate_lien": {
+            "title": "유치권 주장은 성립 여부와 비용을 먼저 검증해야 함",
+            "observed": "경매지에 유치권 관련 기재가 보임",
+            "likely_effect": "채권과 점유의 요건·시간관계가 확인되기 전에는 매수인 부담이나 명도 난이도를 계산할 수 없음",
+            "flips_if": "신고서·공사자료·점유 이력·경매개시등기일을 대조하여 성립 또는 배제 사정이 확인됨",
+        },
+        "gate_land_building_relation": {
+            "title": "토지·건물 분리 징후는 사용권과 추가비용을 확인해야 함",
+            "observed": "토지·건물 또는 대지권의 분리 관련 문구가 보임",
+            "likely_effect": "토지 사용권·지상권·별도 부담의 범위가 확인되기 전에는 일반 물건처럼 가격을 정할 수 없음",
+            "flips_if": "토지·건물 등기와 건축 이력, 매각조건에서 관계와 부담 범위가 확인됨",
+        },
+        "gate_share_auction": {
+            "title": "공유지분은 낙찰 뒤 해소 경로를 먼저 확인해야 함",
+            "observed": "일부 공유지분 매각 징후가 보임",
+            "likely_effect": "특정 부분의 단독 사용이나 즉시 처분을 전제할 수 없고, 공유관계 해소 비용·기간이 핵심임",
+            "flips_if": "지분 비율, 공유자 사용관계·우선매수 및 분할 경로가 확인됨",
+        },
+    }
+    gate_conclusions = []
+    gate_deal_breakers = []
+    for review in legal_gate_reviews:
+        copy = gate_conclusion_copies.get(review["gate_id"])
+        if not copy:
+            continue
+        gate_conclusions.append({
+            "title": copy["title"],
+            "observed": copy["observed"],
+            "likely_effect": copy["likely_effect"],
+            "flips_if": copy["flips_if"],
+            "action": review["next_action"],
+            "evidence_ids": review["evidence_ids"],
+            "legal_rule_ids": review["legal_rule_ids"],
+            "case_ids": review.get("case_ids", []),
+        })
+        gate_deal_breakers.append(f"{copy['title']}에 필요한 원문·현장 자료가 확보되지 않음")
     findings = [
         {
             "finding_id": "finding001",
@@ -240,7 +383,7 @@ def build_case(path: Path) -> dict[str, Any]:
             "conclusion_status": "conditional",
             "summary": "경매지에 표시된 등기 시간축과 말소기준권리 표기는 후보로 정리할 수 있으나, 건물·토지의 최신 전체 등기사항증명서가 없으므로 개별 권리의 소멸·인수는 판정하지 않는다.",
             "assumptions": ["경매지의 등기부현황이 현재 등기사항증명서와 일치한다."],
-            "evidence_ids": [item["evidence_id"] for item in evidence_items if item["evidence_id"].startswith("evright")],
+            "evidence_ids": existing_evidence(*[item["evidence_id"] for item in evidence_items if item["evidence_id"].startswith("evright")]),
             "legal_rule_ids": ["lr_reg_01"],
             "related_missing_ids": ["missing001"],
             "analysis_date": date.today().isoformat(),
@@ -251,7 +394,7 @@ def build_case(path: Path) -> dict[str, Any]:
             "subject_ids": ["asset001"],
             "conclusion_status": "withheld",
             "summary": "경매지의 ‘조사된 임차내역 없음’ 표기만으로 실제 점유·임대차·대항요건 또는 매수인 부담을 확정하지 않는다.",
-            "evidence_ids": ["evtenancy01"] if tenancy_match else ["evasset01"],
+            "evidence_ids": tenancy_evidence,
             "legal_rule_ids": ["lr_lease_01", "lr_lease_02"],
             "related_missing_ids": ["missing002"],
             "analysis_date": date.today().isoformat(),
@@ -263,24 +406,24 @@ def build_case(path: Path) -> dict[str, Any]:
             "conclusion_status": "conditional" if deadline else "withheld",
             "summary": "배당요구 종기 표기는 후보 일자로 기록한다. 권리자별 배당요구의 필요성·유효성·배당액은 법원 기록으로 재확인하기 전까지 판정하지 않는다.",
             "assumptions": ["경매지에 표시된 배당요구 종기가 현재 사건기록과 일치한다."] if deadline else [],
-            "evidence_ids": ["evdeadline01"] if deadline else ["evcase01"],
+            "evidence_ids": existing_evidence("evdeadline01") if deadline else ["evcase01"],
             "legal_rule_ids": ["lr_dist_01"],
             "analysis_date": date.today().isoformat(),
         },
     ]
     decision_support = {
-        "decision_status": "conditional_candidate",
-        "summary": "경매지 기재가 공식 원문과 같다는 조건에서는 등기상 인수위험이 낮아 보이는 검토 후보이다. 입찰 직전 최신 법원 문서와 건물·토지 등기에서 이 전제가 유지되는지만 확인해야 한다.",
+        "decision_status": decision_status,
+        "summary": decision_summary,
         "positive_signals": [{
             "title": "후순위 권리들이 모두 소멸로 표시됨",
             "detail": "경매지는 2015. 9. 8. 근저당권을 말소기준권리로, 뒤의 가등기·근저당권·경매개시등기를 소멸로 표시하고 비소멸 등기권리도 없다고 기재한다.",
-            "evidence_ids": ["evbaseline01", "evright03", "evright04", "evright05", "evsurvive01"],
+            "evidence_ids": registry_signal_evidence,
             "legal_rule_ids": ["lr_reg_01", "lr_protect_01"],
         }],
         "blocking_risks": [{
             "title": "좋아 보이는 결론의 근거가 경매지 한 장에 집중됨",
             "detail": "가등기의 후속 기록, 임차내역 부존재, 토지 대지권의 별도 부담은 최신 공식 원문에서 뒤집힐 수 있다.",
-            "evidence_ids": ["evright03", "evtenancy01", "evsource01"],
+            "evidence_ids": existing_evidence("evright03", "evtenancy01", "evsource01"),
             "legal_rule_ids": ["lr_reg_01", "lr_protect_01", "lr_lease_01", "lr_land_01"],
         }],
         "pre_bid_actions": [
@@ -290,7 +433,7 @@ def build_case(path: Path) -> dict[str, Any]:
                 "resolution": "건물·토지 최신 등기 전부와 매각물건명세서·현황조사서를 날짜순으로 대조한다.",
                 "outcome_if_clear": "권리분석상 입찰 검토 후보를 유지한다.",
                 "outcome_if_not_clear": "확인되지 않은 인수금액 전액을 위험으로 보거나 입찰하지 않는다.",
-                "evidence_ids": ["evbaseline01", "evright03", "evsource01", "evtenancy01"],
+                "evidence_ids": existing_evidence("evbaseline01", "evright03", "evsource01", "evtenancy01"),
                 "legal_rule_ids": ["lr_proc_01", "lr_reg_01", "lr_land_01", "lr_lease_01"],
             },
             {
@@ -299,7 +442,7 @@ def build_case(path: Path) -> dict[str, Any]:
                 "resolution": "현장 방문, 관리사무소에서 허용되는 범위의 확인, 최신 현황조사서로 실제 점유를 대조한다.",
                 "outcome_if_clear": "명도비와 예상기간을 입찰가에 반영한다.",
                 "outcome_if_not_clear": "보수적인 명도 충당금을 반영하거나 입찰을 낮춘다.",
-                "evidence_ids": ["evtenancy01"], "legal_rule_ids": ["lr_lease_01", "lr_lease_02"],
+                "evidence_ids": tenancy_evidence, "legal_rule_ids": ["lr_lease_01", "lr_lease_02"],
             },
         ],
         "special_rights": [
@@ -307,38 +450,38 @@ def build_case(path: Path) -> dict[str, Any]:
                 "special_id": "spr01", "type": "집합건물 대지권 지분", "status": "not_indicated",
                 "why": "아파트 전유부분과 해당 대지권 지분이 함께 매각되는 표시는 통상적인 구조이며, 일부 지분만 매각하는 지분경매라는 뜻은 아니다.",
                 "resolution": "토지 등기와 집합건물 표제부에서 대지권 비율·별도등기·분리처분 흔적만 확인한다.",
-                "evidence_ids": ["evscope01", "evland01", "evsource01"], "legal_rule_ids": ["lr_land_01", "lr_proc_01"],
+                "evidence_ids": land_evidence, "legal_rule_ids": ["lr_land_01", "lr_proc_01"],
                 "case_ids": ["SC-LAND-2008-2005DA15048"],
             },
             {
                 "special_id": "spr02", "type": "후순위 가등기", "status": "candidate",
                 "why": "경매지상 말소기준권리 뒤에 있고 소멸로 표시되어 있어 현재로서는 인수 가능성보다 소멸 가능성이 높게 보인다.",
                 "resolution": "최신 등기에서 접수순위·매매예약 원인·후속 본등기 또는 말소와 법원 명세서 기재를 확인한다.",
-                "evidence_ids": ["evbaseline01", "evright03", "evsurvive01"], "legal_rule_ids": ["lr_protect_01", "lr_reg_01"],
+                "evidence_ids": protection_evidence, "legal_rule_ids": ["lr_protect_01", "lr_reg_01"],
             },
         ],
     }
     buyer_brief = {
-        "verdict": "preliminary_bid_candidate",
+        "verdict": brief_verdict,
         "confidence": "low",
-        "novice_fit": "caution",
-        "headline": "권리표의 원문대조만 통과하면 입찰 검토가 가능한 물건으로 보입니다.",
-        "rationale": "말소기준권리 뒤의 가등기·근저당권·경매개시등기가 모두 소멸로 표시되고, 임차내역과 비소멸 등기권리가 없다고 기재되어 있습니다. 단, 결론의 근거가 단일 경매지이므로 최신 공식 원문과의 일치가 전제입니다.",
+        "novice_fit": brief_novice_fit,
+        "headline": brief_headline,
+        "rationale": brief_rationale,
         "source_strength": "단일 민간 경매지 1개: 순위·누락·전부 원문은 아직 확인되지 않음",
         "cards": {
             "rights": {"label": "등기권리", "status": "favorable", "detail": "후순위 권리 모두 소멸 표시; 가등기는 말소기준권리보다 약 2년 8개월 뒤"},
             "occupancy": {"label": "점유·임차", "status": "favorable", "detail": "조사된 임차내역 없음. 실제 점유와 인도비용은 별도 확인"},
-            "special_property": {"label": "특수물건", "status": "caution", "detail": "대지권 지분 병합매각은 통상 구조. 후순위 가등기 원문만 집중 확인"},
+            "special_property": {"label": "특수물건", "status": special_card_status, "detail": special_card_detail},
             "price": {"label": "가격", "status": "caution", "detail": f"최저가 {minimum_amount:,}원은 감정가 {appraisal_amount:,}원의 {minimum_rate}%" if minimum_amount and appraisal_amount and minimum_rate else "경매지 가격은 확인됐지만 비교사례 해석이 필요"},
         },
-        "conditional_conclusions": [
+        "conditional_conclusions": gate_conclusions + [
             {
                 "title": "후순위 가등기는 소멸 가능성이 높아 보임",
                 "observed": "가등기는 말소기준 근저당권보다 뒤이고 경매지에 소멸로 표시됨",
                 "likely_effect": "최신 원문이 같다면 매수인이 가등기를 인수할 가능성은 낮음",
                 "flips_if": "선순위 권리, 가등기 후속 본등기, 특별매각조건이 새로 확인됨",
                 "action": "건물·토지 최신 등기의 접수순위·후속기록과 매각물건명세서를 대조",
-                "evidence_ids": ["evbaseline01", "evright03", "evsurvive01"], "legal_rule_ids": ["lr_reg_01", "lr_protect_01"],
+                "evidence_ids": protection_evidence, "legal_rule_ids": ["lr_reg_01", "lr_protect_01"],
             },
             {
                 "title": "임차인 인수위험은 낮아 보이나 현장확인은 필요",
@@ -346,14 +489,14 @@ def build_case(path: Path) -> dict[str, Any]:
                 "likely_effect": "선순위 임차인 보증금 인수 위험은 현재 자료상 낮은 편",
                 "flips_if": "최신 현황조사나 현장에서 대항력 있는 점유·임차관계가 확인됨",
                 "action": "현황조사서·현장점유를 대조하고 미확인 명도비를 입찰가에 반영",
-                "evidence_ids": ["evtenancy01"], "legal_rule_ids": ["lr_lease_01", "lr_lease_02"],
+                "evidence_ids": tenancy_evidence, "legal_rule_ids": ["lr_lease_01", "lr_lease_02"],
             },
         ],
         "deal_breakers": [
             "최신 등기에서 말소기준권리보다 앞선 미확인 권리가 발견됨",
             "토지 등기에 대지권 별도 부담이나 선순위 담보가 발견됨",
             "현황조사·현장에서 선순위 임차인 또는 고비용 명도 문제가 발견됨",
-        ],
+        ] + gate_deal_breakers,
     }
     return {
         "schema_version": "0.1.0",
@@ -408,6 +551,7 @@ def build_case(path: Path) -> dict[str, Any]:
         "findings": findings,
         "decision_support": decision_support,
         "buyer_brief": buyer_brief,
+        "legal_gate_reviews": legal_gate_reviews,
     }
 
 

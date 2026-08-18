@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "rules": {
+    "lr_proc_01": {"label": "법원 문서와 매각절차", "references": [{"label": "민사집행법", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}]},
+    "lr_reg_01": {"label": "매각 후 등기권리", "references": [{"label": "민사집행법 제91조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}]},
+    "lr_lease_01": {"label": "주택 임차인의 대항요건", "references": [{"label": "주택임대차보호법 제3조", "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1031734299"}]},
+    "lr_lease_02": {"label": "주택 임차인의 우선변제", "references": [{"label": "주택임대차보호법 제3조의2", "url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1031734145"}]},
+    "lr_dist_01": {"label": "배당요구", "references": [{"label": "민사집행법", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}]},
+    "lr_land_01": {"label": "대지권과 토지등기", "references": [{"label": "집합건물법 제20조", "url": "https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1020634319"}]},
+    "lr_lien_01": {"label": "유치권", "references": [{"label": "민법 제320조·제328조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=284415"}]},
+    "lr_superficies_01": {"label": "법정·관습법상 지상권", "references": [{"label": "민법 제366조", "url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=900141458"}]},
+    "lr_protect_01": {"label": "가등기·가처분", "references": [{"label": "민사집행법 제91조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}]},
+    "lr_lease_scope_01": {"label": "주택·상가 임대차 적용법", "references": [{"label": "상가건물 임대차보호법 제3조", "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1013685449"}]},
+    "lr_provisional_ownership_01": {"label": "소유권이전청구권 보전 가등기", "references": [{"label": "민사집행법 제91조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}]},
+    "lr_provisional_security_01": {"label": "담보가등기", "references": [{"label": "가등기담보 등에 관한 법률", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=265337"}]},
+    "lr_injunction_01": {"label": "처분금지가처분", "references": [{"label": "민사집행법 제91조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}]},
+    "lr_statutory_superficies_01": {"label": "민법 제366조형 법정지상권", "references": [{"label": "민법 제366조", "url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=900141458"}]},
+    "lr_customary_superficies_01": {"label": "관습법상 법정지상권", "references": [{"label": "민법", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=284415"}]},
+    "lr_share_auction_01": {"label": "공유지분 매각", "references": [{"label": "민사집행법 제139조·제140조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}]}
+  }
+}

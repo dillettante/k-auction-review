@@ -355,5 +355,18 @@
       "follow_up_questions": ["점유자C의 실제 점유 개시일과 주민등록 전입일은 언제인가?", "확정일자·임대차계약서·배당요구서가 있는가?"],
       "analysis_date": "2026-08-15"
     }
+  ],
+  "legal_gate_reviews": [
+    {
+      "gate_id": "gate_lease_scope",
+      "status": "facts_incomplete",
+      "summary": "주거용 집합건물과 점유자 진술은 확인되지만, 주민등록·확정일자·점유 시작일이 없어 임차인의 대항·우선변제 또는 매수인 부담을 판단할 수 없다.",
+      "confirmed_fact_ids": ["property_use", "tenant_status"],
+      "missing_fact_ids": ["delivery_or_occupancy", "resident_registration_or_business_registration", "fixed_date", "timeline"],
+      "evidence_ids": ["evstatus01", "evspec02"],
+      "legal_rule_ids": ["lr_lease_scope_01", "lr_lease_01", "lr_lease_02"],
+      "case_ids": ["SC-LEASE-2025-2024DA326398"],
+      "next_action": "전입세대확인서, 임대차계약서, 확정일자와 배당요구 자료를 법원 원문·관계 서류로 대조한다. 확인 전에는 임차보증금 인수 가능성을 비용에서 제외하지 않는다."
+    }
   ]
 }

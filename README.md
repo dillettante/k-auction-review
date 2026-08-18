@@ -15,6 +15,7 @@
 - **문서 게이트**: 매각물건명세서·현황조사서·감정평가서·등기 원문의 누락, 상충, OCR 확인 필요 상태 표시
 - **증거 추적**: 결론에서 문서 종이와 원문 문구로 돌아가는 간결한 `근거 N` 링크
 - **특수 쟁점 경보**: 가등기·유치권·대지권/별도등기·법정지상권·임차권등기·일괄매각 등의 추가 확인 항목
+- **중대 쟁점 확인 게이트**: 유치권·가등기/가처분·토지/건물 분리·공유지분·임대차 징후가 있으면, 확인된 사실·빠진 사실·다음 행동을 한국어로 표시하고 자동 결론을 차단
 - **실거래가 보조 비교**: 사용자가 직접 발급한 국토교통부 API 키로 아파트·토지 실거래가를 조회하고, 비교군의 적합성과 한계를 표시
 
 ## 현재 지원 범위
@@ -50,6 +51,8 @@ python3 tools/validate_case.py private/case.json
 python3 tools/render_report.py private/case.json tmp/report.html --mask
 ```
 입력 스키마와 작성 원칙은 [스킬 안내](analyze-korean-auction-rights/SKILL.md), 법령·판례 출처는 [법률 규칙 등록부](research/legal/LEGAL_RULE_REGISTER.md)와 [판례 등록부](research/legal/CASE_REGISTER.md)에 있습니다.
+중대 권리 쟁점의 실무 확인 순서는 [확인 게이트](analyze-korean-auction-rights/references/decision-gates.md), 기계 검증용 사실 목록은 [게이트 카탈로그](research/legal/LEGAL_GATE_CATALOG.json)에 있습니다.
+제한자료에서도 보고서를 실무적인 행동으로 연결하는 순서는 [입찰 전 실무 검토 순서](analyze-korean-auction-rights/references/pre-bid-workflow.md)를 참조하세요.
 
 ## 제한자료를 읽는 방식
 

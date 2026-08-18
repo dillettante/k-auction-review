@@ -41,6 +41,12 @@ RIGHT_NAMES = {
     "auction_commencement": "경매개시등기",
 }
 SPECIAL_STATUS = {"not_indicated": "해당 징후 없음", "candidate": "확인 필요", "confirmed": "확인", "unknown": "미확인"}
+LEGAL_GATE_STATUS = {
+    "not_triggered": "해당 징후 없음",
+    "facts_incomplete": "필수 사실 부족",
+    "record_ready_for_review": "기록 정리 완료",
+    "expert_review_required": "전문 검토 필요",
+}
 PRIORITY_NAMES = {"blocker": "입찰 전 필수", "critical": "중요", "important": "확인 권장"}
 SEVERITY_NAMES = {"blocking": "필수", "material": "중요", "informational": "참고"}
 DOCUMENT_NAMES = {
@@ -62,6 +68,13 @@ RULE_NAMES = {
     "lr_lien_01": "유치권",
     "lr_superficies_01": "법정지상권",
     "lr_protect_01": "가등기·가처분",
+    "lr_lease_scope_01": "주택·상가 임대차 적용법",
+    "lr_provisional_ownership_01": "소유권이전청구권 보전 가등기",
+    "lr_provisional_security_01": "담보가등기",
+    "lr_injunction_01": "처분금지가처분",
+    "lr_statutory_superficies_01": "민법 제366조형 법정지상권",
+    "lr_customary_superficies_01": "관습법상 법정지상권",
+    "lr_share_auction_01": "공유지분 매각",
 }
 ISSUE_NAMES = {
     "IA01": "목적물·매각 범위",
@@ -133,13 +146,49 @@ def case_links(path: Path) -> dict[str, str]:
     }
 
 
+def load_reference_index(path: Path) -> dict[str, dict[str, Any]]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    rules = value.get("rules") if isinstance(value, dict) else None
+    return rules if isinstance(rules, dict) else {}
+
+
+def load_gate_catalog(path: Path) -> dict[str, dict[str, Any]]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    gates = value.get("gates") if isinstance(value, dict) else None
+    if not isinstance(gates, list):
+        return {}
+    return {
+        item["gate_id"]: item
+        for item in gates
+        if isinstance(item, dict) and isinstance(item.get("gate_id"), str)
+    }
+
+
 def won(value: int | float | None) -> str:
     return f"{int(value):,}원" if value is not None else "미확인"
 
 
-def ref_links(item: dict[str, Any], known_case_links: dict[str, str]) -> str:
-    rule_names = [esc(RULE_NAMES.get(rule, "관련 법률")) for rule in item.get("legal_rule_ids", [])]
-    parts = ["관련 법률: " + ", ".join(rule_names)] if rule_names else []
+def ref_links(
+    item: dict[str, Any], known_case_links: dict[str, str], known_rule_refs: dict[str, dict[str, Any]]
+) -> str:
+    parts: list[str] = []
+    for rule_id in item.get("legal_rule_ids", []):
+        rule = known_rule_refs.get(rule_id, {})
+        rule_label = rule.get("label") if isinstance(rule, dict) else None
+        references = rule.get("references", []) if isinstance(rule, dict) else []
+        if isinstance(references, list) and references and isinstance(references[0], dict):
+            reference = references[0]
+            label = reference.get("label") or rule_label or RULE_NAMES.get(rule_id, "관련 법률")
+            url = reference.get("url")
+            parts.append(f'<a href="{esc(url)}">{esc(label)}</a>' if url else esc(label))
+        else:
+            parts.append(esc(rule_label or RULE_NAMES.get(rule_id, "관련 법률")))
     for index, case_id in enumerate(item.get("case_ids", []), start=1):
         url = known_case_links.get(case_id)
         label = f"관련 대법원 판례 {index}"
@@ -158,7 +207,14 @@ def extract_auction_prices(evidence: dict[str, dict[str, Any]]) -> tuple[int | N
     return amount(appraisal_match), amount(minimum_match)
 
 
-def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, known_case_links: dict[str, str]) -> str:
+def render(
+    case: dict[str, Any],
+    mask: bool,
+    market: dict[str, Any] | None,
+    known_case_links: dict[str, str],
+    known_rule_refs: dict[str, dict[str, Any]],
+    known_gates: dict[str, dict[str, Any]],
+) -> str:
     analysis = case["analysis"]
     case_info = case["case"]
     people = masked_people(case, mask)
@@ -249,7 +305,7 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
             f'<p><strong>가장 가능성 높은 효과</strong> {esc(item["likely_effect"])}</p>'
             f'<p><strong>결론이 뒤집히는 경우</strong> {esc(item["flips_if"])}</p>'
             f'<p><strong>입찰 전 행동</strong> {esc(item["action"])}</p>'
-            f'<details class="legal"><summary>근거와 법률 보기</summary><p class="fine">{" · ".join(evidence_link(eid, evidence_numbers) for eid in item["evidence_ids"])}<br>{ref_links(item, known_case_links)}</p></details></section>'
+            f'<details class="legal"><summary>근거와 법률 보기</summary><p class="fine">{" · ".join(evidence_link(eid, evidence_numbers) for eid in item["evidence_ids"])}<br>{ref_links(item, known_case_links, known_rule_refs)}</p></details></section>'
             for item in brief["conditional_conclusions"]
         )
         breakers = "".join(f"<li>{esc(item)}</li>" for item in brief["deal_breakers"])
@@ -285,30 +341,55 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
     if limited_source_warning:
         general_warning += limited_source_warning
     general_warning += "</aside>"
+    gate_html = ""
+    if case.get("legal_gate_reviews"):
+        gate_rows: list[str] = []
+        for review in case["legal_gate_reviews"]:
+            gate = known_gates.get(review["gate_id"], {})
+            label = gate.get("label", "중대 권리 쟁점")
+            fact_labels = gate.get("fact_labels", {}) if isinstance(gate.get("fact_labels", {}), dict) else {}
+            confirmed = [fact_labels.get(item, item) for item in review["confirmed_fact_ids"]]
+            missing = [fact_labels.get(item, item) for item in review["missing_fact_ids"]]
+            facts = ""
+            if confirmed:
+                facts += "<p><strong>현재 확인된 사실</strong> " + esc(", ".join(confirmed)) + "</p>"
+            if missing:
+                facts += "<p><strong>아직 확인할 사실</strong> " + esc(", ".join(missing)) + "</p>"
+            action = f"<p><strong>다음 행동</strong> {esc(review['next_action'])}</p>" if review.get("next_action") else ""
+            evidence_links = " · ".join(
+                evidence_link(eid, evidence_numbers) for eid in review["evidence_ids"]
+            ) or "근거 추가 필요"
+            gate_rows.append(
+                '<section class="card risk"><p class="eyebrow">중대 쟁점</p>'
+                f'<h3>{esc(label)} <span class="status {esc(review["status"])}">{esc(LEGAL_GATE_STATUS[review["status"]])}</span></h3>'
+                f"<p>{esc(review['summary'])}</p>{facts}{action}"
+                f'<p class="fine">{evidence_links}<br>{ref_links(review, known_case_links, known_rule_refs)}</p></section>'
+            )
+        gate_html = "<h2>중대 권리 쟁점 확인</h2><div class=\"grid\">" + "".join(gate_rows) + "</div>"
     decision = case.get("decision_support")
     decision_html = ""
     if decision:
         signals = "".join(
             "<section class=\"card\"><h3>확인 출발점 — " + esc(item["title"]) + "</h3>"
-            + f"<p>{esc(item['detail'])}</p><p class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links)}</p></section>"
+            + f"<p>{esc(item['detail'])}</p><p class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links, known_rule_refs)}</p></section>"
             for item in decision["positive_signals"]
         ) or "<p class=\"fine\">현재 자료에서 확정된 긍정 신호는 없습니다.</p>"
         risks = "".join(
             "<section class=\"card risk\"><h3>해소 전 위험 — " + esc(item["title"]) + "</h3>"
-            + f"<p>{esc(item['detail'])}</p><p class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links)}</p></section>"
+            + f"<p>{esc(item['detail'])}</p><p class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links, known_rule_refs)}</p></section>"
             for item in decision["blocking_risks"]
         ) or "<p class=\"fine\">기록된 차단 위험이 없습니다.</p>"
         action_rows = "".join(
             "<tr><th>" + esc(PRIORITY_NAMES.get(item["priority"], item["priority"])) + "<br>" + esc(item["title"]) + "</th>"
             + f"<td><strong>왜:</strong> {esc(item['why'])}<br><strong>해소 방법:</strong> {esc(item['resolution'])}<br>"
             + f"<strong>확인되면:</strong> {esc(item['outcome_if_clear'])}<br><strong>확인 안 되면:</strong> {esc(item['outcome_if_not_clear'])}<br>"
-            + f"<span class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links)}</span></td></tr>"
+            + f"<span class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links, known_rule_refs)}</span></td></tr>"
             for item in decision["pre_bid_actions"]
         )
         special_cards = "".join(
             "<section class=\"card\"><h3>" + esc(item["type"]) + " <span class=\"status " + esc(item["status"]) + "\">" + esc(SPECIAL_STATUS.get(item["status"], item["status"])) + "</span></h3>"
             + f"<p>{esc(item['why'])}</p><p><strong>해소:</strong> {esc(item['resolution'])}</p>"
-            + f"<p class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links)}</p></section>"
+            + f"<p class=\"fine\">{' · '.join(evidence_link(eid, evidence_numbers) for eid in item['evidence_ids'])}<br>{ref_links(item, known_case_links, known_rule_refs)}</p></section>"
             for item in decision["special_rights"]
         )
         decision_body = (
@@ -374,6 +455,7 @@ def render(case: dict[str, Any], mask: bool, market: dict[str, Any] | None, know
 {general_warning}
 {market_html}
 {scope_warning}
+{gate_html}
 {decision_html}
 <details class="deep-review"><summary>전체 쟁점별 분석</summary><div class="grid">{''.join(finding_cards)}</div></details>
 <h2>자료 완전성 및 확인 질문</h2><div class="notice"><strong>열린 누락·확인사항</strong><ul>{missing_html}</ul></div><ul>{question_html}</ul>
@@ -394,11 +476,13 @@ def main() -> int:
     parser.add_argument("--schema", type=Path, default=Path("case.schema.json"))
     parser.add_argument("--rule-register", type=Path, default=Path("research/legal/LEGAL_RULE_REGISTER.md"))
     parser.add_argument("--case-register", type=Path, default=Path("research/legal/CASE_REGISTER.md"))
+    parser.add_argument("--gate-catalog", type=Path, default=Path("research/legal/LEGAL_GATE_CATALOG.json"))
+    parser.add_argument("--rule-reference-index", type=Path, default=Path("research/legal/RULE_REFERENCE_INDEX.json"))
     parser.add_argument("--market-comparables", type=Path, help="optional output of build_market_comparables.py")
     args = parser.parse_args()
 
     if not args.skip_validation:
-        command = [sys.executable, str(Path(__file__).with_name("validate_case.py")), str(args.case_json), "--schema", str(args.schema), "--rule-register", str(args.rule_register), "--case-register", str(args.case_register)]
+        command = [sys.executable, str(Path(__file__).with_name("validate_case.py")), str(args.case_json), "--schema", str(args.schema), "--rule-register", str(args.rule_register), "--case-register", str(args.case_register), "--gate-catalog", str(args.gate_catalog)]
         result = subprocess.run(command, check=False)
         if result.returncode:
             return result.returncode
@@ -412,7 +496,14 @@ def main() -> int:
             market = json.loads(args.market_comparables.read_text(encoding="utf-8"))
             if not isinstance(market, dict) or market.get("schema_version") != "auction-market-comparables-0.1.0":
                 raise ValueError("market comparables JSON has an unsupported schema")
-        report = render(case, args.mask, market, case_links(args.case_register))
+        report = render(
+            case,
+            args.mask,
+            market,
+            case_links(args.case_register),
+            load_reference_index(args.rule_reference_index),
+            load_gate_catalog(args.gate_catalog),
+        )
         args.output_html.parent.mkdir(parents=True, exist_ok=True)
         args.output_html.write_text(report, encoding="utf-8")
     except (OSError, ValueError, json.JSONDecodeError) as exc:

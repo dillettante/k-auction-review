@@ -1,0 +1,76 @@
+{
+  "schema_version": "0.1.0",
+  "description": "중요 권리 쟁점의 자동결론을 막고, 사건별 확인 사실을 추적하기 위한 공개 규칙 카탈로그입니다. 각 규칙은 공식 법령·판례 링크를 출발점으로 할 뿐 개별 사건의 법률의견이 아닙니다.",
+  "gates": [
+    {
+      "gate_id": "gate_lease_scope",
+      "label": "임대차 적용법과 대항요건",
+      "mode": "review_only",
+      "blocks_preliminary_bid": false,
+      "required_fact_ids": ["property_use", "tenant_status", "delivery_or_occupancy", "resident_registration_or_business_registration", "fixed_date", "timeline"],
+      "fact_labels": {"property_use": "주택·상가·혼합 용도", "tenant_status": "임차인의 지위", "delivery_or_occupancy": "인도 또는 점유", "resident_registration_or_business_registration": "주민등록 또는 사업자등록", "fixed_date": "확정일자", "timeline": "각 사실의 일자와 계속성"},
+      "legal_rule_ids": ["lr_lease_scope_01", "lr_lease_01", "lr_lease_02"],
+      "case_ids": ["SC-LEASE-2025-2024DA326398"],
+      "references": [
+        {"label": "주택임대차보호법 제3조", "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1031734299"},
+        {"label": "상가건물 임대차보호법 제3조", "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1013685449"}
+      ]
+    },
+    {
+      "gate_id": "gate_lien",
+      "label": "유치권 주장",
+      "mode": "review_only",
+      "blocks_preliminary_bid": true,
+      "required_fact_ids": ["claim_cause", "claim_due_date", "object_relation", "possession_start", "possession_continuity", "auction_commencement_date", "possession_evidence"],
+      "fact_labels": {"claim_cause": "채권 발생 원인", "claim_due_date": "채권 변제기", "object_relation": "목적물 관련성", "possession_start": "점유 시작 시점", "possession_continuity": "점유 계속성", "auction_commencement_date": "경매개시등기일", "possession_evidence": "점유·공사·인도 자료"},
+      "legal_rule_ids": ["lr_lien_01"],
+      "case_ids": ["SC-LIEN-2022-2021DA253710", "SC-LIEN-2024-2023MA7896"],
+      "references": [
+        {"label": "민법 제320조·제328조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=284415"},
+        {"label": "민사집행법 제91조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"}
+      ]
+    },
+    {
+      "gate_id": "gate_provisional_registration",
+      "label": "가등기·가처분 후속기록",
+      "mode": "review_only",
+      "blocks_preliminary_bid": false,
+      "required_fact_ids": ["registration_cause", "registration_rank", "underlying_contract_or_claim", "prior_rights", "subsequent_registration_or_judgment", "sale_terms"],
+      "fact_labels": {"registration_cause": "등기 원인과 목적", "registration_rank": "접수 순위", "underlying_contract_or_claim": "기초 계약 또는 피보전권리", "prior_rights": "선행 권리", "subsequent_registration_or_judgment": "본등기·말소·판결 등 후속기록", "sale_terms": "매각 조건"},
+      "legal_rule_ids": ["lr_provisional_ownership_01", "lr_provisional_security_01", "lr_injunction_01"],
+      "case_ids": ["SC-PROV-2020-2019DA265376", "SC-PROV-2010-2010MA1322"],
+      "references": [
+        {"label": "민사집행법 제91조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"},
+        {"label": "가등기담보 등에 관한 법률", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=265337"}
+      ]
+    },
+    {
+      "gate_id": "gate_land_building_relation",
+      "label": "토지·건물 분리와 지상권",
+      "mode": "review_only",
+      "blocks_preliminary_bid": true,
+      "required_fact_ids": ["land_registry", "building_registry", "ownership_history", "building_existence_at_baseline", "demolition_or_rebuild_history", "sale_scope", "special_sale_terms"],
+      "fact_labels": {"land_registry": "토지 등기", "building_registry": "건물 등기", "ownership_history": "토지·건물 소유 이력", "building_existence_at_baseline": "기준 시점의 건물 존재", "demolition_or_rebuild_history": "철거·신축 이력", "sale_scope": "매각 범위", "special_sale_terms": "특별매각조건"},
+      "legal_rule_ids": ["lr_land_01", "lr_statutory_superficies_01", "lr_customary_superficies_01"],
+      "case_ids": ["SC-SUP-2003-98DA43601", "SC-SUP-2022-2017DA236749", "SC-LAND-2008-2005DA15048"],
+      "references": [
+        {"label": "민법 제366조", "url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=900141458"},
+        {"label": "집합건물법 제20조", "url": "https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1020634319"}
+      ]
+    },
+    {
+      "gate_id": "gate_share_auction",
+      "label": "공유지분 매각",
+      "mode": "review_only",
+      "blocks_preliminary_bid": true,
+      "required_fact_ids": ["sale_share_ratio", "coowners", "use_agreement", "possession_arrangement", "coowner_preemption_record", "partition_history"],
+      "fact_labels": {"sale_share_ratio": "매각 지분 비율", "coowners": "다른 공유자", "use_agreement": "사용수익 약정", "possession_arrangement": "점유·사용 현황", "coowner_preemption_record": "공유자 우선매수 기록", "partition_history": "분할 협의·소송 경과"},
+      "legal_rule_ids": ["lr_share_auction_01"],
+      "case_ids": ["SC-SHARE-2022-2021MA162", "SC-SHARE-2023-2022DA294107"],
+      "references": [
+        {"label": "민사집행법 제139조·제140조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=268837"},
+        {"label": "민법 제263조·제268조", "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=284415"}
+      ]
+    }
+  ]
+}
